@@ -2,22 +2,20 @@ import tkinter as tk
 import random
 from tkinter import messagebox
 import sys
+import time  # Add this import
+from tkinter import simpledialog  # Add this import
 
-def generateRandomBoard(rows, col):
-    choices = ["E", "E", "E", "E", "E", "M"]
-    mineCount = 0
-    details = []
-    board = [[] for _ in range(rows)]
-    for i in range(rows):
-        for _ in range(col):
-            ranchar = random.choice(choices)
-            if ranchar == "M":
-                mineCount += 1
-            board[i].append(ranchar)
-
-    details.append(board)
-    details.append(mineCount)
-    return details
+def generateRandomBoard(rows, col, num_mines):
+    # Generate a board with the specified number of mines
+    board = [['E' for _ in range(col)] for _ in range(rows)]
+    mines_placed = 0
+    while mines_placed < num_mines:
+        i = random.randint(0, rows - 1)
+        j = random.randint(0, col - 1)
+        if board[i][j] == 'E':
+            board[i][j] = 'M'
+            mines_placed += 1
+    return [board, num_mines]
 
 
 def numberMineBoard(board):
@@ -118,11 +116,7 @@ def create_board(board, actualBoard, coordinates, vis, buttonsclear, mineCount, 
         # Handle left mouse button click (reveal logic)
         if value == -1:  # Check if the "New Board" button is pressed
             root.destroy()  # Close the current main window
-            details = generateRandomBoard(dimOfRow, dimOfCol)
-            newboard = details[0]
-            newmineCount = details[1]
-            create_board(makeGameboard(newboard), numberMineBoard(newboard), makeCoordinates(
-                newboard), makeVisited(newboard), buttonsclear, newmineCount, dimensions)  # Create a new board
+            backToMainMenu()  # Return to main menu for new settings
         
         button = buttons[value]
         row = coordinates[value][0]
@@ -230,6 +224,18 @@ def create_board(board, actualBoard, coordinates, vis, buttonsclear, mineCount, 
     additional_button = tk.Button(root, text="Main Menu", command= lambda: closeExisting())
     additional_button.grid(row=n+3, column=0, columnspan=m, padx=10, pady=5)
 
+    start_time = time.time()
+    timer_label = tk.Label(root, text="Time: 0")
+    timer_label.grid(row=0, column=0, columnspan=m)
+
+    def update_timer():
+        elapsed_time = int(time.time() - start_time)
+        if elapsed_time <= 999:
+            timer_label.config(text=f"Time: {elapsed_time}")
+            root.after(1000, update_timer)
+
+    update_timer()
+
     root.protocol("WM_DELETE_WINDOW", close)
     # Start the Tkinter event loop
     root.mainloop()
@@ -257,12 +263,12 @@ def makeGameboard(board):
 def backToMainMenu():
     dimensions = []
     def left_click(value):
-        if value == 1:
-            dimensions.append([6, 15])
-        elif value == 2:
-            dimensions.append([10, 25])
-        elif value == 3:
-            dimensions.append([14, 35])
+        # Prompt user for custom width, height, and number of mines
+        width = simpledialog.askinteger("寬度", "請輸入遊戲寬度 (5-35):", minvalue=5, maxvalue=35)
+        height = simpledialog.askinteger("高度", "請輸入遊戲高度 (5-35):", minvalue=5, maxvalue=35)
+        max_mines = width * height - 1
+        num_mines = simpledialog.askinteger("地雷數", f"請輸入地雷數量 (1-{max_mines}):", minvalue=1, maxvalue=max_mines)
+        dimensions.append([height, width, num_mines])
         root.destroy()
     
     def on_closing():
@@ -309,9 +315,9 @@ def backToMainMenu():
     # Start the Tkinter event loop
     root.mainloop()
 
-    details = generateRandomBoard(dimensions[0][0], dimensions[0][1])
+    details = generateRandomBoard(dimensions[0][0], dimensions[0][1], dimensions[0][2])
     board = details[0]
-    mineCount = details[1]
+    mineCount = dimensions[0][2]
 
     
     buttonsclear = set()
